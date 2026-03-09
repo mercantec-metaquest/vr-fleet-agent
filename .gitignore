@@ -1,0 +1,31 @@
+# Archivos de configuración de Android Studio e IntelliJ
+*.iml
+.gradle/
+.idea/caches/
+.idea/libraries/
+.idea/modules.xml
+.idea/workspace.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+
+# Archivos locales de tu PC (Rutas del SDK, etc)
+local.properties
+
+# Carpetas de compilación (¡La más importante para no subir basura!)
+build/
+*/build/
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# Capturas de memoria y rendimiento de Android Studio
+/captures/
+
+# Compilación nativa (C/C++) por si acaso
+.externalNativeBuild/
+.cxx/
+
+# ¡SEGURIDAD! Ignorar claves de firma de la app
+*.jks
+*.keystore
