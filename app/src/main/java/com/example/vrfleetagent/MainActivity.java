@@ -23,6 +23,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okhttp3.FormBody;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -33,8 +34,11 @@ public class MainActivity extends AppCompatActivity {
     private final OkHttpClient httpClient = new OkHttpClient();
 
     // 🚨 TODO: Ací va la URL de Webhook.site per a fer proves
-    private static final String API_URL = "https://webhook.site/95bbb2b3-5ba6-4921-868a-88a8436819ac";
-    private static final String DEVICE_ID = "MOCK-QUEST-01";
+    //private static final String API_URL = "https://webhook.site/95bbb2b3-5ba6-4921-868a-88a8436819ac";
+    //private static final String DEVICE_ID = "MOCK-QUEST-01";
+    // IP local
+    private static final String API_URL = "http://192.168.115.211/backend-api/api.php";
+    private static final String DEVICE_ID = "TEST-001";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,42 +80,37 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void sendDataToServer(int batteryLevel) {
-        // 1. Create a simple JSON payload
-        String jsonPayload = "{"
-                + "\"deviceId\": \"" + DEVICE_ID + "\","
-                + "\"battery\": " + batteryLevel + ","
-                + "\"status\": \"online\""
-                + "}";
+        // En lugar de JSON, construimos un "Formulario" igual que el URLSearchParams de JavaScript
+        FormBody body = new FormBody.Builder()
+                .add("numero_serie", DEVICE_ID)
+                .add("bateria", String.valueOf(batteryLevel))
+                .add("app_activa", "Menú Principal")
+                .build();
 
-        Log.d(TAG, "📦 Sending JSON: " + jsonPayload);
+        Log.d(TAG, "📦 Sending Form Data to DAW API...");
 
-        // 2. Build the request body
-        RequestBody body = RequestBody.create(
-                jsonPayload,
-                MediaType.parse("application/json; charset=utf-8")
-        );
-
-        // 3. Build the POST request
+        // Construimos la petición POST
         Request request = new Request.Builder()
                 .url(API_URL)
                 .post(body)
                 .build();
 
-        // 4. Execute asynchronously (background thread)
+        // Ejecutamos en segundo plano
         httpClient.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                Log.e(TAG, "❌ Network Error: Could not reach the server.", e);
+                Log.e(TAG, "❌ Network Error: No puedo conectar con la IP de DAW. ¿Estáis en el mismo WiFi?", e);
             }
 
             @Override
-            public void onResponse(@NonNull Call call, @NonNull Response response) {
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                 if (response.isSuccessful()) {
-                    Log.d(TAG, "✅ Success! Server responded with HTTP " + response.code());
+                    // Si el PHP devuelve un texto (como un echo json_encode), lo podemos leer así:
+                    String responseBody = response.body() != null ? response.body().string() : "Sin cuerpo";
+                    Log.d(TAG, "✅ Success! PHP de DAW respondió (HTTP " + response.code() + "): " + responseBody);
                 } else {
-                    Log.w(TAG, "⚠️ Warning! Server returned HTTP " + response.code());
+                    Log.w(TAG, "⚠️ Warning! Servidor conectado pero devolvió error: " + response.code());
                 }
-                // Always close the response body to avoid memory leaks
                 response.close();
             }
         });
