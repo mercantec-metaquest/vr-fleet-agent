@@ -33,7 +33,7 @@ public class MainActivity extends AppCompatActivity {
     // HTTP Client for network requests
     private final OkHttpClient httpClient = new OkHttpClient();
 
-    // 🚨 TODO: Ací va la URL de Webhook.site per a fer proves
+    // TODO: Here is the URL of Webhook.site for testing
     //private static final String API_URL = "https://webhook.site/95bbb2b3-5ba6-4921-868a-88a8436819ac";
     //private static final String DEVICE_ID = "MOCK-QUEST-01";
     // IP local
@@ -89,13 +89,13 @@ public class MainActivity extends AppCompatActivity {
 
         Log.d(TAG, "📦 Sending Form Data to DAW API...");
 
-        // Construimos la petición POST
+        // We built the POST request
         Request request = new Request.Builder()
                 .url(API_URL)
                 .post(body)
                 .build();
 
-        // Ejecutamos en segundo plano
+        // We run it in the background
         httpClient.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {

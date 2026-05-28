@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<device-admin xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-policies>
+        <!-- Allows the agent to lock the screen remotely -->
+        <force-lock />
+        <!-- Allows the agent to perform a factory reset (wipe) remotely -->
+        <wipe-data />
+    </uses-policies>
+</device-admin>
