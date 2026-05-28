@@ -36,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
     // TODO: Here is the URL of Webhook.site for testing
     //private static final String API_URL = "https://webhook.site/95bbb2b3-5ba6-4921-868a-88a8436819ac";
     //private static final String DEVICE_ID = "MOCK-QUEST-01";
-    // IP local
+    // Local IP
     private static final String API_URL = "http://192.168.115.211/backend-api/api.php";
     private static final String DEVICE_ID = "TEST-001";
 
@@ -80,14 +80,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void sendDataToServer(int batteryLevel) {
-        // En lugar de JSON, construimos un "Formulario" igual que el URLSearchParams de JavaScript
+        // Instead of JSON, we build a "form" just like JavaScript's URLSearchParams
         FormBody body = new FormBody.Builder()
                 .add("numero_serie", DEVICE_ID)
                 .add("bateria", String.valueOf(batteryLevel))
-                .add("app_activa", "Menú Principal")
+                .add("app_activa", "Main Menu")
                 .build();
 
-        Log.d(TAG, "📦 Sending Form Data to DAW API...");
+        Log.d(TAG, "📦 Sending Form Data to server API...");
 
         // We built the POST request
         Request request = new Request.Builder()
@@ -99,17 +99,17 @@ public class MainActivity extends AppCompatActivity {
         httpClient.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                Log.e(TAG, "❌ Network Error: No puedo conectar con la IP de DAW. ¿Estáis en el mismo WiFi?", e);
+                Log.e(TAG, "❌ Network Error: Cannot connect to the server IP. Are you on the same WiFi?", e);
             }
 
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                 if (response.isSuccessful()) {
-                    // Si el PHP devuelve un texto (como un echo json_encode), lo podemos leer así:
-                    String responseBody = response.body() != null ? response.body().string() : "Sin cuerpo";
-                    Log.d(TAG, "✅ Success! PHP de DAW respondió (HTTP " + response.code() + "): " + responseBody);
+                    // If the PHP returns text (like an echo json_encode), we can read it like this:
+                    String responseBody = response.body() != null ? response.body().string() : "No body";
+                    Log.d(TAG, "✅ Success! Server responded (HTTP " + response.code() + "): " + responseBody);
                 } else {
-                    Log.w(TAG, "⚠️ Warning! Servidor conectado pero devolvió error: " + response.code());
+                    Log.w(TAG, "⚠️ Warning! Server connected but returned an error: " + response.code());
                 }
                 response.close();
             }
