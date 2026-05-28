@@ -65,6 +65,9 @@ public class AgentService extends Service implements WebSocketManager.CommandLis
     // Handles APK download + installation for remote install commands.
     private AppInstaller appInstaller;
 
+    // Receives remote commands from the server over a WebSocket.
+    private WebSocketManager webSocketManager;
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -76,6 +79,10 @@ public class AgentService extends Service implements WebSocketManager.CommandLis
 
         acquireWakeLock();
         startForegroundService();
+
+        // Open the command channel; this service handles the incoming commands.
+        webSocketManager = new WebSocketManager(this);
+        webSocketManager.connect();
 
         // Kick off the periodic telemetry loop immediately.
         telemetryHandler.post(telemetryRunnable);
@@ -103,6 +110,9 @@ public class AgentService extends Service implements WebSocketManager.CommandLis
     public void onDestroy() {
         super.onDestroy();
         telemetryHandler.removeCallbacks(telemetryRunnable);
+        if (webSocketManager != null) {
+            webSocketManager.disconnect();
+        }
         releaseWakeLock();
     }
 
