@@ -3,7 +3,6 @@ package com.example.vrfleetagent;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.app.Service;
 import android.app.admin.DevicePolicyManager;
 import android.content.ComponentName;
@@ -24,8 +23,6 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -65,9 +62,14 @@ public class AgentService extends Service implements WebSocketManager.CommandLis
 
     private PowerManager.WakeLock wakeLock;
 
+    // Handles APK download + installation for remote install commands.
+    private AppInstaller appInstaller;
+
     @Override
     public void onCreate() {
         super.onCreate();
+
+        appInstaller = new AppInstaller(this);
 
         // Warn early if we lack Device Owner privileges (some commands need them).
         logDeviceOwnerStatus();
@@ -220,7 +222,7 @@ public class AgentService extends Service implements WebSocketManager.CommandLis
     @Override
     public void onInstallCommand(String apkUrl) {
         Log.d(TAG, "Install command received for: " + apkUrl);
-        installApk(apkUrl);
+        appInstaller.receiveInstallCommand(apkUrl);
     }
 
     @Override
@@ -241,51 +243,7 @@ public class AgentService extends Service implements WebSocketManager.CommandLis
         }
     }
 
-    // --- App installation via PackageInstaller ---
-
-    private void installApk(String apkUrl) {
-        // Download and install off the main thread to avoid blocking the looper.
-        new Thread(() -> {
-            Request request = new Request.Builder().url(apkUrl).build();
-            try (Response response = httpClient.newCall(request).execute()) {
-                if (!response.isSuccessful() || response.body() == null) {
-                    Log.e(TAG, "APK download failed: HTTP " + response.code());
-                    return;
-                }
-
-                PackageInstaller installer = getPackageManager().getPackageInstaller();
-                PackageInstaller.SessionParams params =
-                        new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
-                int sessionId = installer.createSession(params);
-
-                try (PackageInstaller.Session session = installer.openSession(sessionId)) {
-                    try (OutputStream out = session.openWrite("vr_app.apk", 0, -1);
-                         InputStream in = response.body().byteStream()) {
-                        byte[] buffer = new byte[8192];
-                        int read;
-                        while ((read = in.read(buffer)) != -1) {
-                            out.write(buffer, 0, read);
-                        }
-                        session.fsync(out);
-                    }
-                    session.commit(buildInstallStatusSender());
-                }
-            } catch (IOException e) {
-                Log.e(TAG, "APK installation failed.", e);
-            }
-        }).start();
-    }
-
-    private android.content.IntentSender buildInstallStatusSender() {
-        Intent statusIntent = new Intent(this, AgentService.class).setAction(ACTION_INSTALL_STATUS);
-        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            // PackageInstaller fills in extras, so the PendingIntent must be mutable.
-            flags |= PendingIntent.FLAG_MUTABLE;
-        }
-        PendingIntent pendingIntent = PendingIntent.getService(this, 0, statusIntent, flags);
-        return pendingIntent.getIntentSender();
-    }
+    // --- Install result handling ---
 
     private void handleInstallStatus(@NonNull Intent intent) {
         int status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, Integer.MIN_VALUE);
