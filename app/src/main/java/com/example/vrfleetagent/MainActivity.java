@@ -1,10 +1,12 @@
 package com.example.vrfleetagent;
 
+import android.app.admin.DevicePolicyManager;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.BatteryManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
@@ -28,7 +30,7 @@ import okhttp3.FormBody;
 public class MainActivity extends AppCompatActivity {
 
     // Tag to easily find our messages in the console (Logcat)
-    private static final String TAG = "VR_AGENT";
+    private static final String TAG = "VR_MAIN";
 
     // HTTP Client for network requests
     private final OkHttpClient httpClient = new OkHttpClient();
@@ -54,8 +56,32 @@ public class MainActivity extends AppCompatActivity {
         });
         // ---------------------------------------------------
 
+        // Start the long-running background agent (telemetry + remote commands).
+        startForegroundService(new Intent(this, AgentService.class));
+
+        // Show the current configuration and Device Owner status on screen.
+        updateStatusUI();
+
         // Read the battery and trigger the network request
         readHeadsetBattery();
+    }
+
+    // Renders the agent configuration and Device Owner status into the status TextView.
+    private void updateStatusUI() {
+        TextView statusText = findViewById(R.id.statusText);
+        if (statusText == null) {
+            return;
+        }
+
+        DevicePolicyManager dpm = getSystemService(DevicePolicyManager.class);
+        boolean isDeviceOwner = dpm != null && dpm.isDeviceOwnerApp(getPackageName());
+
+        String status = "Device Serial: " + AgentConfig.DEVICE_SERIAL + "\n"
+                + "Server IP: " + AgentConfig.SERVER_IP + "\n"
+                + "Ping Interval: " + (AgentConfig.TELEMETRY_INTERVAL_MS / 1000) + "s\n"
+                + "Device Owner: " + (isDeviceOwner ? "YES" : "NO");
+
+        statusText.setText(status);
     }
 
     private void readHeadsetBattery() {
